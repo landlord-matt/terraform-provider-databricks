@@ -128,7 +128,6 @@ func chooseFieldNameWithAliases(typeField reflect.StructField, parentType reflec
 	if len(aliases) == 0 {
 		return fieldNameWithAliasTag
 	}
-
 	jsonFieldName := getJsonFieldName(typeField)
 	if jsonFieldName == "-" {
 		return "-"
@@ -191,6 +190,10 @@ func StructToSchema(v any, customize func(map[string]*schema.Schema) map[string]
 	}
 	rv := reflect.ValueOf(v)
 	scm := typeToSchema(rv, map[string]map[string]string{}, getEmptyRecursionTrackingContext())
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 	if customize != nil {
 		scm = customize(scm)
 	}
@@ -342,6 +345,9 @@ func listAllFields(v reflect.Value) []field {
 }
 
 func typeToSchema(v reflect.Value, aliases map[string]map[string]string, rt recursionTrackingContext) map[string]*schema.Schema {
+	if rpStruct, ok := ResourceProviderRegistry[getNameForType(v.Type())]; ok {
+		return StructToSchema(rpStruct, nil)
+	}
 	scm := map[string]*schema.Schema{}
 	rk := v.Kind()
 	if rk == reflect.Ptr {
