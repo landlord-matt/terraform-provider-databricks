@@ -341,7 +341,7 @@ func listAllFields(v reflect.Value) []field {
 }
 
 func typeToSchema(v reflect.Value, aliases map[string]map[string]string, rt recursionTrackingContext) map[string]*schema.Schema {
-	if rpStruct, ok := ResourceProviderRegistry[getNameForType(v.Type())]; ok {
+	if rpStruct, ok := resourceProviderRegistry[getNameForType(v.Type())]; ok {
 		return StructToSchema(rpStruct, nil)
 	}
 	scm := map[string]*schema.Schema{}
