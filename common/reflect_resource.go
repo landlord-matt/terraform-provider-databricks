@@ -65,7 +65,9 @@ func RegisterResourceProvider(v any, r ResourceProvider) {
 // Generic interface for ResourceProvider. Using CustomizeSchema function to keep track of additional information
 // on top of the generated go-sdk struct.
 type ResourceProvider interface {
-	CustomizeSchema(map[string]*schema.Schema) map[string]*schema.Schema
+	// The first input is the schema we would like to customize, the second input is a string representing the
+	// prefix, this is used as inputs for functions like SetExactlyOneOf() or SetConflictsWith()
+	CustomizeSchema(map[string]*schema.Schema, string) map[string]*schema.Schema
 }
 
 // Interface for ResourceProvider instances that need aliases for fields.
@@ -97,7 +99,7 @@ type RecursiveResourceProvider interface {
 }
 
 // Takes in a ResourceProvider and converts that into a map from string to schema.
-func resourceProviderStructToSchema(v ResourceProvider) map[string]*schema.Schema {
+func resourceProviderStructToSchema(v ResourceProvider, prefix string) map[string]*schema.Schema {
 	rv := reflect.ValueOf(v)
 	var scm map[string]*schema.Schema
 	aliases := map[string]map[string]string{}
@@ -109,7 +111,7 @@ func resourceProviderStructToSchema(v ResourceProvider) map[string]*schema.Schem
 	} else {
 		scm = typeToSchema(rv, aliases, getEmptyRecursionTrackingContext())
 	}
-	scm = v.CustomizeSchema(scm)
+	scm = v.CustomizeSchema(scm, prefix)
 	return scm
 }
 
@@ -186,7 +188,7 @@ func StructToSchema(v any, customize func(map[string]*schema.Schema) map[string]
 		if customize != nil {
 			panic("customize should be nil if the input implements the ResourceProvider interface; use CustomizeSchema of ResourceProvider instead")
 		}
-		return resourceProviderStructToSchema(rp)
+		return resourceProviderStructToSchema(rp, "")
 	}
 	rv := reflect.ValueOf(v)
 	scm := typeToSchema(rv, map[string]map[string]string{}, getEmptyRecursionTrackingContext())
@@ -342,7 +344,7 @@ func listAllFields(v reflect.Value) []field {
 
 func typeToSchema(v reflect.Value, aliases map[string]map[string]string, rt recursionTrackingContext) map[string]*schema.Schema {
 	if rpStruct, ok := resourceProviderRegistry[getNameForType(v.Type())]; ok {
-		return StructToSchema(rpStruct, nil)
+		return resourceProviderStructToSchema(rpStruct, strings.Join(rt.path, ".")+".")
 	}
 	scm := map[string]*schema.Schema{}
 	rk := v.Kind()
@@ -428,6 +430,7 @@ func typeToSchema(v reflect.Value, aliases map[string]map[string]string, rt recu
 			scm[fieldName].Type = schema.TypeList
 			elem := typeField.Type.Elem()
 			sv := reflect.New(elem).Elem()
+			rt.addToPath(fieldName)
 			nestedSchema := typeToSchema(sv, aliases, rt)
 			if strings.Contains(tfTag, "suppress_diff") {
 				scm[fieldName].DiffSuppressFunc = diffSuppressor(fieldName, scm[fieldName])
@@ -444,7 +447,7 @@ func typeToSchema(v reflect.Value, aliases map[string]map[string]string, rt recu
 
 			elem := typeField.Type  // changed from ptr
 			sv := reflect.New(elem) // changed from ptr
-
+			rt.addToPath(fieldName)
 			nestedSchema := typeToSchema(sv, aliases, rt)
 			if strings.Contains(tfTag, "suppress_diff") {
 				scm[fieldName].DiffSuppressFunc = diffSuppressor(fieldName, scm[fieldName])
@@ -473,6 +476,7 @@ func typeToSchema(v reflect.Value, aliases map[string]map[string]string, rt recu
 				scm[fieldName].Elem = &schema.Schema{Type: schema.TypeString}
 			case reflect.Struct:
 				sv := reflect.New(elem).Elem()
+				rt.addToPath(fieldName)
 				scm[fieldName].Elem = &schema.Resource{
 					Schema: typeToSchema(sv, aliases, rt),
 				}

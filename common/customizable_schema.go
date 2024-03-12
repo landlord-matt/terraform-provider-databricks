@@ -107,35 +107,45 @@ func (s *CustomizableSchema) SetMinItems(value int) *CustomizableSchema {
 	return s
 }
 
-func (s *CustomizableSchema) SetConflictsWith(value []string) *CustomizableSchema {
+func getPrefixedPaths(prefix string, paths []string) []string {
+	prefixedPaths := make([]string, len(paths))
+	for i, value := range paths {
+		prefixedPaths[i] = prefix + value
+	}
+	return prefixedPaths
+}
+
+// Prefix is used for cases where the resource is referenced from the resourceProviderRegistry.
+// The prefix should be directly taken from the input of CustomizeSchema function.
+func (s *CustomizableSchema) SetConflictsWith(prefix string, value []string) *CustomizableSchema {
 	if len(value) == 0 {
 		panic("SetConflictsWith cannot take in an empty list")
 	}
-	s.Schema.ConflictsWith = value
+	s.Schema.ConflictsWith = getPrefixedPaths(prefix, value)
 	return s
 }
 
-func (s *CustomizableSchema) SetExactlyOneOf(value []string) *CustomizableSchema {
+func (s *CustomizableSchema) SetExactlyOneOf(prefix string, value []string) *CustomizableSchema {
 	if len(value) == 0 {
 		panic("SetExactlyOneOf cannot take in an empty list")
 	}
-	s.Schema.ExactlyOneOf = value
+	s.Schema.ExactlyOneOf = getPrefixedPaths(prefix, value)
 	return s
 }
 
-func (s *CustomizableSchema) SetAtLeastOneOf(value []string) *CustomizableSchema {
+func (s *CustomizableSchema) SetAtLeastOneOf(prefix string, value []string) *CustomizableSchema {
 	if len(value) == 0 {
 		panic("SetAtLeastOneOf cannot take in an empty list")
 	}
-	s.Schema.AtLeastOneOf = value
+	s.Schema.AtLeastOneOf = getPrefixedPaths(prefix, value)
 	return s
 }
 
-func (s *CustomizableSchema) SetRequiredWith(value []string) *CustomizableSchema {
+func (s *CustomizableSchema) SetRequiredWith(prefix string, value []string) *CustomizableSchema {
 	if len(value) == 0 {
 		panic("SetRequiredWith cannot take in an empty list")
 	}
-	s.Schema.RequiredWith = value
+	s.Schema.RequiredWith = getPrefixedPaths(prefix, value)
 	return s
 }
 
