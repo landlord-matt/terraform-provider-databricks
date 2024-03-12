@@ -868,7 +868,7 @@ func parseJobId(id string) (int64, error) {
 	return strconv.ParseInt(id, 10, 64)
 }
 
-var newSchema = common.StructToSchema(JobSettingsResource{}, nil)
+var jobsGoSdkSchema = common.StructToSchema(JobSettingsResource{}, nil)
 
 // Callbacks to manage runs for jobs after creation and update.
 //
@@ -1001,7 +1001,7 @@ func ResourceJob() common.Resource {
 		return ctx
 	}
 	return common.Resource{
-		Schema:        newSchema,
+		Schema:        jobsGoSdkSchema,
 		SchemaVersion: 2,
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(clusters.DefaultProvisionTimeout),
@@ -1093,8 +1093,5 @@ func ResourceJob() common.Resource {
 }
 
 func init() {
-	if common.ResourceProviderRegistry == nil {
-		common.ResourceProviderRegistry = make(map[string]common.ResourceProvider)
-	}
-	common.ResourceProviderRegistry["jobs.JobSettings"] = JobSettingsResource{}
+	common.RegisterResourceProvider(jobs.JobSettings{}, JobSettingsResource{})
 }
