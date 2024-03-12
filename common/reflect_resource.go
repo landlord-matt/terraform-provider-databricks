@@ -190,10 +190,6 @@ func StructToSchema(v any, customize func(map[string]*schema.Schema) map[string]
 	}
 	rv := reflect.ValueOf(v)
 	scm := typeToSchema(rv, map[string]map[string]string{}, getEmptyRecursionTrackingContext())
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
 	if customize != nil {
 		scm = customize(scm)
 	}
