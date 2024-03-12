@@ -52,5 +52,5 @@ func getRecursionTrackingContext(rp RecursiveResourceProvider) recursionTracking
 }
 
 func getNameForType(t reflect.Type) string {
-	return strings.TrimPrefix(t.String(), "*")
+	return t.PkgPath() + strings.TrimPrefix(t.Name(), "*")
 }
