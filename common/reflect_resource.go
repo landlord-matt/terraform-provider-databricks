@@ -188,7 +188,7 @@ func StructToSchema(v any, customize func(map[string]*schema.Schema) map[string]
 		if customize != nil {
 			panic("customize should be nil if the input implements the ResourceProvider interface; use CustomizeSchema of ResourceProvider instead")
 		}
-		return resourceProviderStructToSchema(rp, "")
+		return resourceProviderStructToSchema(rp, []string{})
 	}
 	rv := reflect.ValueOf(v)
 	scm := typeToSchema(rv, map[string]map[string]string{}, getEmptyRecursionTrackingContext())
