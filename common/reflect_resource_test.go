@@ -96,7 +96,7 @@ type testForEachTask struct {
 	Extra string       `json:"extra,omitempty"`
 }
 
-func (testRecursiveStruct) CustomizeSchema(s map[string]*schema.Schema) map[string]*schema.Schema {
+func (testRecursiveStruct) CustomizeSchema(s map[string]*schema.Schema, path []string) map[string]*schema.Schema {
 	return s
 }
 
