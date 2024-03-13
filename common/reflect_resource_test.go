@@ -273,7 +273,7 @@ func (DummyResourceProvider) Aliases() map[string]map[string]string {
 		"common.AddressNoTfTag": {"primary": "primary_alias"}}
 }
 
-func (DummyResourceProvider) CustomizeSchema(s map[string]*schema.Schema) map[string]*schema.Schema {
+func (DummyResourceProvider) CustomizeSchema(s map[string]*schema.Schema, path []string) map[string]*schema.Schema {
 	CustomizeSchemaPath(s, "addresses").SetMinItems(1)
 	CustomizeSchemaPath(s, "addresses").SetMaxItems(10)
 	CustomizeSchemaPath(s, "tags").SetMaxItems(5)
