@@ -514,7 +514,7 @@ func (JobSettingsResource) Aliases() map[string]map[string]string {
 	return aliases
 }
 
-func (JobSettingsResource) CustomizeSchema(s map[string]*schema.Schema, prefix string) map[string]*schema.Schema {
+func (JobSettingsResource) CustomizeSchema(s map[string]*schema.Schema, path []string) map[string]*schema.Schema {
 	common.CustomizeSchemaPath(s, "format").SetComputed()
 	common.CustomizeSchemaPath(s, "dbt_task").SetDeprecated("should be used inside a task block and not inside a job block")
 	common.CustomizeSchemaPath(s).AddNewField("url", &schema.Schema{
@@ -554,14 +554,14 @@ func (JobSettingsResource) CustomizeSchema(s map[string]*schema.Schema, prefix s
 	common.CustomizeSchemaPath(s, "continuous", "pause_status").SetValidateFunc(validation.StringInSlice([]string{"PAUSED", "UNPAUSED"}, false))
 	common.CustomizeSchemaPath(s, "max_concurrent_runs").SetDefault(1).SetValidateDiagFunc(validation.ToDiagFunc(validation.IntAtLeast(0)))
 
-	common.CustomizeSchemaPath(s, "schedule").SetConflictsWith(prefix, []string{"continuous", "trigger"})
-	common.CustomizeSchemaPath(s, "continuous").SetConflictsWith(prefix, []string{"schedule", "trigger"})
-	common.CustomizeSchemaPath(s, "trigger").SetConflictsWith(prefix, []string{"continuous", "schedule"})
+	common.CustomizeSchemaPath(s, "schedule").SetConflictsWith(path, []string{"continuous", "trigger"})
+	common.CustomizeSchemaPath(s, "continuous").SetConflictsWith(path, []string{"schedule", "trigger"})
+	common.CustomizeSchemaPath(s, "trigger").SetConflictsWith(path, []string{"continuous", "schedule"})
 
 	// we need to have only one of user name vs service principal in the run_as block
 	run_as_eoo := []string{"run_as.0.user_name", "run_as.0.service_principal_name"}
-	common.CustomizeSchemaPath(s, "run_as", "user_name").SetExactlyOneOf(prefix, run_as_eoo)
-	common.CustomizeSchemaPath(s, "run_as", "service_principal_name").SetExactlyOneOf(prefix, run_as_eoo)
+	common.CustomizeSchemaPath(s, "run_as", "user_name").SetExactlyOneOf(path, run_as_eoo)
+	common.CustomizeSchemaPath(s, "run_as", "service_principal_name").SetExactlyOneOf(path, run_as_eoo)
 
 	// Clear the implied diff suppression for the webhook notification lists
 	for _, n := range []string{"on_start", "on_failure", "on_success", "on_duration_warning_threshold_exceeded"} {

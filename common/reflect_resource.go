@@ -65,9 +65,9 @@ func RegisterResourceProvider(v any, r ResourceProvider) {
 // Generic interface for ResourceProvider. Using CustomizeSchema function to keep track of additional information
 // on top of the generated go-sdk struct.
 type ResourceProvider interface {
-	// The first input is the schema we would like to customize, the second input is a string representing the
-	// prefix, this is used as inputs for functions like SetExactlyOneOf() or SetConflictsWith()
-	CustomizeSchema(map[string]*schema.Schema, string) map[string]*schema.Schema
+	// The first input is the schema we would like to customize, the second input is a slice representing the
+	// path leading to the current resource, this is used as inputs for functions like SetExactlyOneOf() or SetConflictsWith()
+	CustomizeSchema(map[string]*schema.Schema, []string) map[string]*schema.Schema
 }
 
 // Interface for ResourceProvider instances that need aliases for fields.
@@ -99,7 +99,7 @@ type RecursiveResourceProvider interface {
 }
 
 // Takes in a ResourceProvider and converts that into a map from string to schema.
-func resourceProviderStructToSchema(v ResourceProvider, prefix string) map[string]*schema.Schema {
+func resourceProviderStructToSchema(v ResourceProvider, path []string) map[string]*schema.Schema {
 	rv := reflect.ValueOf(v)
 	var scm map[string]*schema.Schema
 	aliases := map[string]map[string]string{}
@@ -111,7 +111,7 @@ func resourceProviderStructToSchema(v ResourceProvider, prefix string) map[strin
 	} else {
 		scm = typeToSchema(rv, aliases, getEmptyRecursionTrackingContext())
 	}
-	scm = v.CustomizeSchema(scm, prefix)
+	scm = v.CustomizeSchema(scm, path)
 	return scm
 }
 
@@ -344,7 +344,7 @@ func listAllFields(v reflect.Value) []field {
 
 func typeToSchema(v reflect.Value, aliases map[string]map[string]string, rt recursionTrackingContext) map[string]*schema.Schema {
 	if rpStruct, ok := resourceProviderRegistry[getNameForType(v.Type())]; ok {
-		return resourceProviderStructToSchema(rpStruct, strings.Join(rt.path, ".")+".")
+		return resourceProviderStructToSchema(rpStruct, rt.path)
 	}
 	scm := map[string]*schema.Schema{}
 	rk := v.Kind()
