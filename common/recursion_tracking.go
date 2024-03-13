@@ -66,5 +66,11 @@ func getRecursionTrackingContext(rp RecursiveResourceProvider) recursionTracking
 }
 
 func getNameForType(t reflect.Type) string {
+	if strings.HasSuffix(t.String(), "JobSettings") {
+		println("!!!!!!")
+		println(t.Name())
+		println(t.PkgPath())
+		println(t.String())
+	}
 	return strings.TrimPrefix(t.String(), "*")
 }
