@@ -78,5 +78,5 @@ func getNameForType(t reflect.Type) string {
 		println(derefType.PkgPath())
 		println(derefType.String())
 	}
-	return derefType.PkgPath() + derefType.Name()
+	return strings.TrimPrefix(t.String(), "*")
 }

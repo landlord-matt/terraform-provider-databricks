@@ -41,7 +41,7 @@ var kindMap = map[reflect.Kind]string{
 // Global registry for ResoureProvider, the goal is to make StructToSchema able to find pre-registered ResourceProvider for a
 // given struct so that we don't have to specify aliases and customizations redundantly if one schema references the another
 // schema.
-var resourceProviderRegistry map[string]ResourceProvider
+var resourceProviderRegistry map[reflect.Type]ResourceProvider
 
 // Pre-registered ResourceProvider for a given struct into resourceProviderRegistry.
 // This function should be called in the init() function in packages with ResourceProvider.
@@ -52,14 +52,23 @@ var resourceProviderRegistry map[string]ResourceProvider
 //	}
 func RegisterResourceProvider(v any, r ResourceProvider) {
 	if resourceProviderRegistry == nil {
-		resourceProviderRegistry = make(map[string]ResourceProvider)
+		resourceProviderRegistry = make(map[reflect.Type]ResourceProvider)
 	}
-	typeName := getNameForType(reflect.ValueOf(v).Type())
-	if _, ok := resourceProviderRegistry[typeName]; ok {
+	t := getResourceProviderRegistryKey(v)
+	if _, ok := resourceProviderRegistry[t]; ok {
 		errMsg := fmt.Sprintf("%s has already been registered, please avoid registering the same type repeatedly.", typeName)
 		panic(errMsg)
 	}
-	resourceProviderRegistry[typeName] = r
+	resourceProviderRegistry[t] = r
+}
+
+func getResourceProviderRegistryKey(v any) reflect.Type {
+	t := reflect.ValueOf(v).Type()
+	if t.Kind() == reflect.Ptr {
+		return t.Elem()
+	} else {
+		return t
+	}
 }
 
 // Generic interface for ResourceProvider. Using CustomizeSchema function to keep track of additional information
@@ -343,7 +352,7 @@ func listAllFields(v reflect.Value) []field {
 }
 
 func typeToSchema(v reflect.Value, aliases map[string]map[string]string, rt recursionTrackingContext) map[string]*schema.Schema {
-	if rpStruct, ok := resourceProviderRegistry[getNameForType(v.Type())]; ok {
+	if rpStruct, ok := resourceProviderRegistry[getResourceProviderRegistryKey(v)]; ok {
 		return resourceProviderStructToSchema(rpStruct, rt.path)
 	}
 	scm := map[string]*schema.Schema{}
