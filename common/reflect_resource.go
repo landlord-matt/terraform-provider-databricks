@@ -447,7 +447,7 @@ func typeToSchema(v reflect.Value, aliases map[string]map[string]string, rt recu
 
 			elem := typeField.Type  // changed from ptr
 			sv := reflect.New(elem) // changed from ptr
-			rt.addToPath(fieldName)
+			rt = rt.addToPath(fieldName)
 			nestedSchema := typeToSchema(sv, aliases, rt)
 			if strings.Contains(tfTag, "suppress_diff") {
 				scm[fieldName].DiffSuppressFunc = diffSuppressor(fieldName, scm[fieldName])

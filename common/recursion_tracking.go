@@ -42,9 +42,11 @@ func (rt recursionTrackingContext) visit(v reflect.Value) {
 	rt.timesVisited[getNameForType(v.Type())] += 1
 }
 
-func (rt *recursionTrackingContext) addToPath(fieldName string) {
+func (rt recursionTrackingContext) addToPath(fieldName string) recursionTrackingContext {
+	newRt := rt.copy()
 	// Special path element `"0"` is used to denote either arrays or sets of elements
-	rt.path = append(rt.path, fieldName, "0")
+	newRt.path = append(rt.path, fieldName, "0")
+	return newRt
 }
 
 func getEmptyRecursionTrackingContext() recursionTrackingContext {
