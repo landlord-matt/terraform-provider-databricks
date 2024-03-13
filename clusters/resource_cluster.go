@@ -89,10 +89,13 @@ func (ClusterSpec) CustomizeSchema(s map[string]*schema.Schema, path []string) m
 	common.CustomizeSchemaPath(s, "docker_image", "basic_auth", "password").SetRequired().SetSensitive()
 	common.CustomizeSchemaPath(s, "docker_image", "basic_auth", "username").SetRequired()
 	common.CustomizeSchemaPath(s, "spark_conf").SetCustomSuppressDiff(SparkConfDiffSuppressFunc)
-	common.CustomizeSchemaPath(s, "aws_attributes").SetSuppressDiff().SetConflictsWith(path, []string{"azure_attributes", "gcp_attributes"})
+	common.CustomizeSchemaPath(s, "aws_attributes").SetSuppressDiff()
+	common.CustomizeSchemaPath(s, "aws_attributes").SetConflictsWith(path, []string{"azure_attributes", "gcp_attributes"})
 	common.CustomizeSchemaPath(s, "aws_attributes", "zone_id").SetCustomSuppressDiff(ZoneDiffSuppress)
-	common.CustomizeSchemaPath(s, "azure_attributes").SetSuppressDiff().SetConflictsWith(path, []string{"aws_attributes", "gcp_attributes"})
-	common.CustomizeSchemaPath(s, "gcp_attributes").SetSuppressDiff().SetConflictsWith(path, []string{"aws_attributes", "azure_attributes"})
+	common.CustomizeSchemaPath(s, "azure_attributes").SetSuppressDiff()
+	common.CustomizeSchemaPath(s, "azure_attributes").SetConflictsWith(path, []string{"aws_attributes", "gcp_attributes"})
+	common.CustomizeSchemaPath(s, "gcp_attributes").SetSuppressDiff()
+	common.CustomizeSchemaPath(s, "gcp_attributes").SetConflictsWith(path, []string{"aws_attributes", "azure_attributes"})
 
 	common.CustomizeSchemaPath(s).AddNewField("library", common.StructToSchema(libraries.ClusterLibraryList{},
 		func(ss map[string]*schema.Schema) map[string]*schema.Schema {
