@@ -521,17 +521,19 @@ func (JobSettingsResource) CustomizeSchema(s map[string]*schema.Schema, path []s
 		Computed: true,
 		Type:     schema.TypeString,
 	}).AddNewField("always_running", &schema.Schema{
-		Optional:      true,
-		Default:       false,
-		Type:          schema.TypeBool,
-		Deprecated:    "always_running will be replaced by control_run_state in the next major release.",
-		ConflictsWith: []string{"control_run_state", "continuous"},
+		Optional:   true,
+		Default:    false,
+		Type:       schema.TypeBool,
+		Deprecated: "always_running will be replaced by control_run_state in the next major release.",
 	}).AddNewField("control_run_state", &schema.Schema{
 		Optional:      true,
 		Default:       false,
 		Type:          schema.TypeBool,
 		ConflictsWith: []string{"always_running"},
 	})
+
+	common.CustomizeSchemaPath(s, "always_running").SetConflictsWith(path, []string{"control_run_state", "continuous"})
+	common.CustomizeSchemaPath(s, "control_run_state").SetConflictsWith(path, []string{"always_running"})
 
 	common.CustomizeSchemaPath(s, "task", "library").Schema.Type = schema.TypeSet
 	common.CustomizeSchemaPath(s, "task", "for_each_task", "task", "library").Schema.Type = schema.TypeSet
