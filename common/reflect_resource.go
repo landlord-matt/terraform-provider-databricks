@@ -56,7 +56,7 @@ func RegisterResourceProvider(v any, r ResourceProvider) {
 	}
 	t := getResourceProviderRegistryKey(v)
 	if _, ok := resourceProviderRegistry[t]; ok {
-		errMsg := fmt.Sprintf("%s has already been registered, please avoid registering the same type repeatedly.", typeName)
+		errMsg := fmt.Sprintf("%s has already been registered, please avoid registering the same type repeatedly.", getNameForType(t))
 		panic(errMsg)
 	}
 	resourceProviderRegistry[t] = r
