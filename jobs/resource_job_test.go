@@ -2268,6 +2268,7 @@ func TestResourceJobUpdate_Tasks(t *testing.T) {
 						Name: "Featurizer New",
 						Tasks: []JobTaskSettings{
 							{
+								TaskKey:           "key",
 								ExistingClusterID: "abc",
 								SparkJarTask: &SparkJarTask{
 									MainClassName: "com.labs.BarMain",
