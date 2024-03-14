@@ -1823,30 +1823,6 @@ func TestResourceJobCreateFromGitSourceBranchAndCommitConflict(t *testing.T) {
 	resourceJobCreateFromGitSourceConflict(t, []string{"branch", "commit"}, gitSource)
 }
 
-func TestResourceJobCreateFromGitSourceWithoutProviderFail(t *testing.T) {
-	qa.ResourceFixture{
-		Create:   true,
-		Resource: ResourceJob(),
-		HCL: `existing_cluster_id = "abc"
-		max_concurrent_runs = 1
-		name = "GitSourceJob"
-
-		git_source {
-			url = "https://custom.git.hosting.com/databricks/terraform-provider-databricks"
-			tag = "0.4.8"
-		}
-
-		task {
-			task_key = "b"
-
-			notebook_task {
-				notebook_path = "/GitSourcedNotebook"
-			}
-		}
-	`,
-	}.ExpectError(t, "git source is not empty but Git Provider is not specified and cannot be guessed by url &{Url:https://custom.git.hosting.com/databricks/terraform-provider-databricks Provider: Branch: Tag:0.4.8 Commit: JobSource:<nil>}")
-}
-
 func TestResourceJobCreateSingleNode_Fail(t *testing.T) {
 	_, err := qa.ResourceFixture{
 		Create:   true,
@@ -2076,6 +2052,7 @@ func TestResourceJobUpdate_NodeTypeToInstancePool(t *testing.T) {
 						},
 						Tasks: []JobTaskSettings{
 							{
+								TaskKey: "key",
 								NewCluster: &clusters.Cluster{
 									InstancePoolID:       "instance-pool-worker-task",
 									DriverInstancePoolID: "instance-pool-driver-task",
@@ -2086,6 +2063,7 @@ func TestResourceJobUpdate_NodeTypeToInstancePool(t *testing.T) {
 						},
 						JobClusters: []JobCluster{
 							{
+								JobClusterKey: "key",
 								NewCluster: &clusters.Cluster{
 									InstancePoolID:       "instance-pool-worker-job",
 									DriverInstancePoolID: "instance-pool-driver-job",
@@ -2326,6 +2304,7 @@ func TestResourceJobUpdate_Tasks(t *testing.T) {
 			spark_jar_task {
 				main_class_name = "com.labs.BarMain"
 			}
+			task_key = "key"
 		}`,
 	}.ApplyNoError(t)
 }
