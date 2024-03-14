@@ -1748,6 +1748,7 @@ func TestResourceJobCreateFromGitSource(t *testing.T) {
 				import_from_git_branch = "main"
 				dirty_state = "NOT_SYNCED"
 			}
+			provider = "gitHub"
 		}
 
 		task {
@@ -1795,6 +1796,7 @@ func TestResourceJobCreateFromGitSourceTagAndBranchConflict(t *testing.T) {
 		url = "https://github.com/databricks/terraform-provider-databricks"
 		tag = "0.4.8"
 		branch = "main"
+		provider = "gitHub"
 	}`
 	resourceJobCreateFromGitSourceConflict(t, []string{"branch", "tag"}, gitSource)
 }
@@ -1803,6 +1805,7 @@ func TestResourceJobCreateFromGitSourceTagAndCommitConflict(t *testing.T) {
 		url = "https://github.com/databricks/terraform-provider-databricks"
 		tag = "0.4.8"
 		commit = "a26bf6"
+		provider = "gitHub"
 	}`
 	resourceJobCreateFromGitSourceConflict(t, []string{"commit", "tag"}, gitSource)
 }
@@ -1812,6 +1815,7 @@ func TestResourceJobCreateFromGitSourceBranchAndCommitConflict(t *testing.T) {
 		url = "https://github.com/databricks/terraform-provider-databricks"
 		branch = "main"
 		commit = "a26bf6"
+		provider = "gitHub"
 	}`
 	resourceJobCreateFromGitSourceConflict(t, []string{"branch", "commit"}, gitSource)
 }
@@ -2133,6 +2137,7 @@ func TestResourceJobUpdate_NodeTypeToInstancePool(t *testing.T) {
 			num_workers = 1
 		}
 		task = {
+			task_key = "key"
 			new_cluster = {
 				instance_pool_id = "instance-pool-worker-task"
 				driver_instance_pool_id = "instance-pool-driver-task"
@@ -2141,6 +2146,7 @@ func TestResourceJobUpdate_NodeTypeToInstancePool(t *testing.T) {
 			}
 		}
 		job_cluster = {
+			job_cluster_key = "key"
 			new_cluster = {
 				instance_pool_id = "instance-pool-worker-job"
 				driver_instance_pool_id = "instance-pool-driver-job"
