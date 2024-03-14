@@ -2162,6 +2162,7 @@ func TestResourceJobUpdate_InstancePoolToNodeType(t *testing.T) {
 						},
 						Tasks: []JobTaskSettings{
 							{
+								TaskKey: "key",
 								NewCluster: &clusters.Cluster{
 									NodeTypeID:   "node-type-id-2",
 									SparkVersion: "spark-2",
@@ -2171,6 +2172,7 @@ func TestResourceJobUpdate_InstancePoolToNodeType(t *testing.T) {
 						},
 						JobClusters: []JobCluster{
 							{
+								JobClusterKey: "key",
 								NewCluster: &clusters.Cluster{
 									NodeTypeID:   "node-type-id-3",
 									SparkVersion: "spark-3",
@@ -2228,6 +2230,7 @@ func TestResourceJobUpdate_InstancePoolToNodeType(t *testing.T) {
 			num_workers = 1
 		}
 		task = {
+			task_key = "key"
 			new_cluster = {
 				node_type_id = "node-type-id-2"
 				spark_version = "spark-2"
@@ -2235,6 +2238,7 @@ func TestResourceJobUpdate_InstancePoolToNodeType(t *testing.T) {
 			}
 		}
 		job_cluster = {
+			job_cluster_key = "key"
 			new_cluster = {
 				node_type_id = "node-type-id-3"
 				spark_version = "spark-3"
