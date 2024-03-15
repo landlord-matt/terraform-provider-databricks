@@ -22,7 +22,7 @@ import (
 	"github.com/databricks/databricks-sdk-go/service/settings"
 	"github.com/databricks/databricks-sdk-go/service/sharing"
 	"github.com/databricks/databricks-sdk-go/service/sql"
-	workspaceApi "github.com/databricks/databricks-sdk-go/service/workspace"
+	sdk_workspace "github.com/databricks/databricks-sdk-go/service/workspace"
 	"github.com/databricks/terraform-provider-databricks/aws"
 	"github.com/databricks/terraform-provider-databricks/clusters"
 	"github.com/databricks/terraform-provider-databricks/commands"
@@ -323,7 +323,7 @@ var emptyRecipients = qa.HTTPFixture{
 var emptyGitCredentials = qa.HTTPFixture{
 	Method:   http.MethodGet,
 	Resource: "/api/2.0/git-credentials",
-	Response: []workspaceApi.CredentialInfo{
+	Response: []sdk_workspace.CredentialInfo{
 		{},
 	},
 }
@@ -695,6 +695,15 @@ func TestImportingUsersGroupsSecretScopes(t *testing.T) {
 				Response: secrets.ACLItem{Permission: "READ", Principal: "users"},
 			},
 			emptyWorkspace,
+			{
+				Method:   "GET",
+				Resource: "/api/2.0/secrets/get?key=b&scope=a",
+
+				Response: sdk_workspace.GetSecretResponse{
+					Value: "dGVzdA==",
+					Key:   "b",
+				},
+			},
 		}, func(ctx context.Context, client *common.DatabricksClient) {
 			tmpDir := fmt.Sprintf("/tmp/tf-%s", qa.RandomName())
 			defer os.RemoveAll(tmpDir)
@@ -703,6 +712,7 @@ func TestImportingUsersGroupsSecretScopes(t *testing.T) {
 			ic.Directory = tmpDir
 			_, listing := ic.allServicesAndListing()
 			ic.enableListing(listing)
+			ic.exportSecrets = true
 
 			err := ic.Run()
 			assert.NoError(t, err)

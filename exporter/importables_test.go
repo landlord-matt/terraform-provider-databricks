@@ -60,6 +60,7 @@ func importContextForTest() *importContext {
 		defaultChannel:            make(resourceChannel, defaultChannelSize),
 		services:                  map[string]struct{}{},
 		listing:                   map[string]struct{}{},
+		tfvars:                    map[string]string{},
 	}
 }
 
