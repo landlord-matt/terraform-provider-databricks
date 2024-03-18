@@ -676,6 +676,7 @@ func StructToData(result any, s map[string]*schema.Schema, d *schema.ResourceDat
 		case schema.TypeList, schema.TypeSet:
 			es, ok := fieldSchema.Elem.(*schema.Schema)
 			if ok {
+				println("1")
 				log.Printf("[TRACE] Set %s %s %v", es.Type, fieldPath, fieldValue)
 				// here we rely on Terraform SDK to perform
 				// validation, so we don't to it twice
@@ -688,9 +689,11 @@ func StructToData(result any, s map[string]*schema.Schema, d *schema.ResourceDat
 			if len(nv) == 0 {
 				return nil
 			}
+			println("2")
 			log.Printf("[TRACE] set %s %#v", fieldPath, nv)
 			return d.Set(fieldPath, nv)
 		default:
+			println("3")
 			log.Printf("[TRACE] set %s %#v", fieldPath, fieldValue)
 			return d.Set(fieldPath, fieldValue)
 		}
