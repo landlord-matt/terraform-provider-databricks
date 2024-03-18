@@ -82,7 +82,7 @@ type SqlDashboardTask struct {
 
 type SqlAlertTask struct {
 	AlertID            string            `json:"alert_id"`
-	Subscriptions      []SqlSubscription `json:"subscriptions"`
+	Subscriptions      []SqlSubscription `json:"subscriptions,omitempty"`
 	PauseSubscriptions bool              `json:"pause_subscriptions,omitempty"`
 }
 
