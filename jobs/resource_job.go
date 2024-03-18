@@ -1060,7 +1060,7 @@ func ResourceJob() common.Resource {
 				return err
 			}
 			d.Set("url", c.FormatURL("#job/", d.Id()))
-			return common.StructToData(*job.Settings, jobSchema, d)
+			return common.StructToData(*job.Settings, jobsGoSdkSchema, d)
 		},
 		Update: func(ctx context.Context, d *schema.ResourceData, c *common.DatabricksClient) error {
 			var js JobSettings
