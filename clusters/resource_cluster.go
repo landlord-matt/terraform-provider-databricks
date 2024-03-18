@@ -111,7 +111,6 @@ func (ClusterSpec) CustomizeSchema(s map[string]*schema.Schema, path []string) m
 	common.CustomizeSchemaPath(s, "autoscale", "min_workers").SetOptional()
 	common.CustomizeSchemaPath(s, "cluster_log_conf", "dbfs", "destination").SetRequired()
 	common.CustomizeSchemaPath(s, "cluster_log_conf", "s3", "destination").SetRequired()
-	common.CustomizeSchemaPath(s, "spark_version").SetRequired()
 	common.CustomizeSchemaPath(s).AddNewField("cluster_id", &schema.Schema{
 		Type:     schema.TypeString,
 		Optional: true,
