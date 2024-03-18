@@ -1785,9 +1785,6 @@ func resourceJobCreateFromGitSourceConflict(t *testing.T, conflictingArgs []stri
 	assert.Error(t, err)
 	var found = false
 	for _, fieldName := range conflictingArgs {
-		println("!")
-		println(fieldName)
-		println(err.Error())
 		require.Equal(t, true, strings.Contains(err.Error(), fieldName))
 		found = true
 	}
