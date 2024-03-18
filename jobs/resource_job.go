@@ -129,7 +129,7 @@ type ForEachTask struct {
 }
 
 type ForEachNestedTask struct {
-	TaskKey     string                `json:"task_key,omitempty"`
+	TaskKey     string                `json:"task_key"`
 	Description string                `json:"description,omitempty"`
 	DependsOn   []jobs.TaskDependency `json:"depends_on,omitempty"`
 	RunIf       string                `json:"run_if,omitempty" tf:"suppress_diff"`
