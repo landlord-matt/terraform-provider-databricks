@@ -379,10 +379,11 @@ func TestUcAccResourceSqlTable_DropColumn(t *testing.T) {
 	if os.Getenv("GOOGLE_CREDENTIALS") != "" {
 		skipf(t)("databricks_sql_table resource not available on GCP")
 	}
+	tableName := RandomName()
 	unityWorkspaceLevel(t, step{
-		Template: constructManagedSqlTableTemplate([]catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: true, Comment: "comment"}, {Name: "nametwo", Type: "string", Nullable: true, Comment: "comment"}}),
+		Template: constructManagedSqlTableTemplate(tableName, []catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: true, Comment: "comment"}, {Name: "nametwo", Type: "string", Nullable: true, Comment: "comment"}}),
 	}, step{
-		Template: constructManagedSqlTableTemplate([]catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: false, Comment: "comment"}}),
+		Template: constructManagedSqlTableTemplate(tableName, []catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: false, Comment: "comment"}}),
 	})
 }
 
@@ -390,10 +391,11 @@ func TestUcAccResourceSqlTable_AddColumn(t *testing.T) {
 	if os.Getenv("GOOGLE_CREDENTIALS") != "" {
 		skipf(t)("databricks_sql_table resource not available on GCP")
 	}
+	tableName := RandomName()
 	unityWorkspaceLevel(t, step{
-		Template: constructManagedSqlTableTemplate([]catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: true, Comment: "comment"}}),
+		Template: constructManagedSqlTableTemplate(tableName, []catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: true, Comment: "comment"}}),
 	}, step{
-		Template: constructManagedSqlTableTemplate([]catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: false, Comment: "comment"}, {Name: "nametwo", Type: "string", Nullable: true, Comment: "comment"}}),
+		Template: constructManagedSqlTableTemplate(tableName, []catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: false, Comment: "comment"}, {Name: "nametwo", Type: "string", Nullable: true, Comment: "comment"}}),
 	})
 }
 
@@ -405,10 +407,11 @@ func TestUcAccResourceSqlTable_AddColumnAndUpdateThrows(t *testing.T) {
 	pattern := "detected changes in both number of columns and existing column field values, please do not change number of columns and update column values at the same time"
 	r := regexp.MustCompile(pattern)
 
+	tableName := RandomName()
 	unityWorkspaceLevel(t, step{
-		Template: constructManagedSqlTableTemplate([]catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: true, Comment: "comment"}}),
+		Template: constructManagedSqlTableTemplate(tableName, []catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: true, Comment: "comment"}}),
 	}, step{
-		Template:    constructManagedSqlTableTemplate([]catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: false, Comment: "new comment"}, {Name: "nametwo", Type: "string", Nullable: true, Comment: "comment"}}),
+		Template:    constructManagedSqlTableTemplate(tableName, []catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: false, Comment: "new comment"}, {Name: "nametwo", Type: "string", Nullable: true, Comment: "comment"}}),
 		ExpectError: r,
 	})
 }
@@ -421,10 +424,11 @@ func TestUcAccResourceSqlTable_DropColumnAndUpdateThrows(t *testing.T) {
 	pattern := "detected changes in both number of columns and existing column field values, please do not change number of columns and update column values at the same time"
 	r := regexp.MustCompile(pattern)
 
+	tableName := RandomName()
 	unityWorkspaceLevel(t, step{
-		Template: constructManagedSqlTableTemplate([]catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: true, Comment: "comment"}, {Name: "nametwo", Type: "string", Nullable: true, Comment: "comment"}}),
+		Template: constructManagedSqlTableTemplate(tableName, []catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: true, Comment: "comment"}, {Name: "nametwo", Type: "string", Nullable: true, Comment: "comment"}}),
 	}, step{
-		Template:    constructManagedSqlTableTemplate([]catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: false, Comment: "new comment"}}),
+		Template:    constructManagedSqlTableTemplate(tableName, []catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: false, Comment: "new comment"}}),
 		ExpectError: r,
 	})
 }
