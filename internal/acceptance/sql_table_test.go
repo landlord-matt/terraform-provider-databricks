@@ -383,7 +383,19 @@ func TestUcAccResourceSqlTable_DropColumn(t *testing.T) {
 	unityWorkspaceLevel(t, step{
 		Template: constructManagedSqlTableTemplate(tableName, []catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: true, Comment: "comment"}, {Name: "nametwo", Type: "string", Nullable: true, Comment: "comment"}}),
 	}, step{
-		Template: constructManagedSqlTableTemplate(tableName, []catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: false, Comment: "comment"}}),
+		Template: constructManagedSqlTableTemplate(tableName, []catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: true, Comment: "comment"}}),
+	})
+}
+
+func TestUcAccResourceSqlTable_DropMultipleColumns(t *testing.T) {
+	if os.Getenv("GOOGLE_CREDENTIALS") != "" {
+		skipf(t)("databricks_sql_table resource not available on GCP")
+	}
+	tableName := RandomName()
+	unityWorkspaceLevel(t, step{
+		Template: constructManagedSqlTableTemplate(tableName, []catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: true, Comment: "comment"}, {Name: "nametwo", Type: "string", Nullable: true, Comment: "comment"}, {Name: "namethree", Type: "string", Nullable: true, Comment: "comment"}}),
+	}, step{
+		Template: constructManagedSqlTableTemplate(tableName, []catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: true, Comment: "comment"}}),
 	})
 }
 
@@ -395,7 +407,19 @@ func TestUcAccResourceSqlTable_AddColumn(t *testing.T) {
 	unityWorkspaceLevel(t, step{
 		Template: constructManagedSqlTableTemplate(tableName, []catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: true, Comment: "comment"}}),
 	}, step{
-		Template: constructManagedSqlTableTemplate(tableName, []catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: false, Comment: "comment"}, {Name: "nametwo", Type: "string", Nullable: true, Comment: "comment"}}),
+		Template: constructManagedSqlTableTemplate(tableName, []catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: true, Comment: "comment"}, {Name: "nametwo", Type: "string", Nullable: true, Comment: "comment"}}),
+	})
+}
+
+func TestUcAccResourceSqlTable_AddMultipleColumns(t *testing.T) {
+	if os.Getenv("GOOGLE_CREDENTIALS") != "" {
+		skipf(t)("databricks_sql_table resource not available on GCP")
+	}
+	tableName := RandomName()
+	unityWorkspaceLevel(t, step{
+		Template: constructManagedSqlTableTemplate(tableName, []catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: true, Comment: "comment"}}),
+	}, step{
+		Template: constructManagedSqlTableTemplate(tableName, []catalog.SqlColumnInfo{{Name: "name", Type: "string", Nullable: true, Comment: "comment"}, {Name: "nametwo", Type: "string", Nullable: true, Comment: "comment"}, {Name: "namethree", Type: "string", Nullable: true, Comment: "comment"}}),
 	})
 }
 
