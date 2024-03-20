@@ -906,6 +906,102 @@ func TestResourceSqlTableUpdateTable_AddColumn(t *testing.T) {
 	assert.Equal(t, "bar", d.Get("name"))
 }
 
+func TestResourceSqlTableUpdateTable_AddMultipleColumns(t *testing.T) {
+	allowedCommands := []string{
+		"ALTER TABLE `main`.`foo`.`bar` ADD COLUMN (`two` string NOT NULL COMMENT 'managed comment', `three` string NOT NULL COMMENT 'managed comment')",
+	}
+	d, err := qa.ResourceFixture{
+		CommandMock: func(commandStr string) common.CommandResults {
+			assert.True(t, slices.Contains(allowedCommands, commandStr))
+			return common.CommandResults{
+				ResultType: "",
+				Data:       nil,
+			}
+		},
+		HCL: `
+		name               = "bar"
+		catalog_name       = "main"
+		schema_name        = "foo"
+		table_type         = "EXTERNAL"
+		data_source_format = "DELTA"
+		storage_location   = "s3://ext-main/foo/bar1"
+		comment 		   = "terraform managed"
+		cluster_id         = "gone"
+		column {
+			name      = "one"
+			type      = "string"
+			comment   = "managed comment"
+			nullable  = true
+		}
+		column {
+			name      = "two"
+			type      = "string"
+			comment   = "managed comment"
+			nullable  = false
+		}
+		column {
+			name      = "three"
+			type      = "string"
+			comment   = "managed comment"
+			nullable  = false
+		}
+		`,
+		InstanceState: map[string]string{
+			"name":               "bar",
+			"catalog_name":       "main",
+			"schema_name":        "foo",
+			"table_type":         "EXTERNAL",
+			"data_source_format": "DELTA",
+			"storage_location":   "s3://ext-main/foo/bar1",
+			"comment":            "terraform managed",
+			"column.#":           "1",
+			"column.0.name":      "one",
+			"column.0.type":      "string",
+			"column.0.comment":   "managed comment",
+			"column.0.nullable":  "true",
+		},
+		Fixtures: append([]qa.HTTPFixture{
+			{
+				Method:       "GET",
+				Resource:     "/api/2.1/unity-catalog/tables/main.foo.bar",
+				ReuseRequest: true,
+				Response: SqlTableInfo{
+					Name:                  "bar",
+					CatalogName:           "main",
+					SchemaName:            "foo",
+					TableType:             "EXTERNAL",
+					DataSourceFormat:      "DELTA",
+					StorageLocation:       "s3://ext-main/foo/bar1",
+					StorageCredentialName: "somecred",
+					Comment:               "terraform managed",
+					ColumnInfos: []SqlColumnInfo{
+						{
+							Name:     "one",
+							Type:     "string",
+							Comment:  "managed comment",
+							Nullable: true,
+						},
+					},
+				},
+			},
+			{
+				Method:   "POST",
+				Resource: "/api/2.0/clusters/start",
+				ExpectedRequest: clusters.ClusterID{
+					ClusterID: "gone",
+				},
+				Status: 404,
+			},
+		}, createClusterForSql...),
+		Resource: ResourceSqlTable(),
+		ID:       "main.foo.bar",
+		Update:   true,
+	}.Apply(t)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "bar", d.Get("name"))
+}
+
 func TestResourceSqlTableUpdateTable_DropColumn(t *testing.T) {
 	allowedCommands := []string{
 		"ALTER TABLE `main`.`foo`.`bar` DROP COLUMN IF EXISTS (`two`)",
@@ -975,6 +1071,110 @@ func TestResourceSqlTableUpdateTable_DropColumn(t *testing.T) {
 						},
 						{
 							Name:     "two",
+							Type:     "string",
+							Comment:  "managed comment",
+							Nullable: true,
+						},
+					},
+				},
+			},
+			{
+				Method:   "POST",
+				Resource: "/api/2.0/clusters/start",
+				ExpectedRequest: clusters.ClusterID{
+					ClusterID: "gone",
+				},
+				Status: 404,
+			},
+		}, createClusterForSql...),
+		Resource: ResourceSqlTable(),
+		ID:       "main.foo.bar",
+		Update:   true,
+	}.Apply(t)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "bar", d.Get("name"))
+}
+
+func TestResourceSqlTableUpdateTable_DropMultipleColumns(t *testing.T) {
+	allowedCommands := []string{
+		"ALTER TABLE `main`.`foo`.`bar` DROP COLUMN IF EXISTS (`two`, `three`)",
+	}
+	d, err := qa.ResourceFixture{
+		CommandMock: func(commandStr string) common.CommandResults {
+			assert.True(t, slices.Contains(allowedCommands, commandStr))
+			return common.CommandResults{
+				ResultType: "",
+				Data:       nil,
+			}
+		},
+		HCL: `
+		name               = "bar"
+		catalog_name       = "main"
+		schema_name        = "foo"
+		table_type         = "EXTERNAL"
+		data_source_format = "DELTA"
+		storage_location   = "s3://ext-main/foo/bar1"
+		comment 		   = "terraform managed"
+		cluster_id         = "gone"
+		column {
+			name      = "one"
+			type      = "string"
+			comment   = "managed comment"
+			nullable  = true
+		}
+		`,
+		InstanceState: map[string]string{
+			"name":               "bar",
+			"catalog_name":       "main",
+			"schema_name":        "foo",
+			"table_type":         "EXTERNAL",
+			"data_source_format": "DELTA",
+			"storage_location":   "s3://ext-main/foo/bar1",
+			"comment":            "terraform managed",
+			"column.#":           "3",
+			"column.0.name":      "one",
+			"column.0.type":      "string",
+			"column.0.comment":   "managed comment",
+			"column.0.nullable":  "true",
+			"column.1.name":      "two",
+			"column.1.type":      "string",
+			"column.1.comment":   "managed comment",
+			"column.1.nullable":  "true",
+			"column.2.name":      "three",
+			"column.2.type":      "string",
+			"column.2.comment":   "managed comment",
+			"column.2.nullable":  "true",
+		},
+		Fixtures: append([]qa.HTTPFixture{
+			{
+				Method:       "GET",
+				Resource:     "/api/2.1/unity-catalog/tables/main.foo.bar",
+				ReuseRequest: true,
+				Response: SqlTableInfo{
+					Name:                  "bar",
+					CatalogName:           "main",
+					SchemaName:            "foo",
+					TableType:             "EXTERNAL",
+					DataSourceFormat:      "DELTA",
+					StorageLocation:       "s3://ext-main/foo/bar1",
+					StorageCredentialName: "somecred",
+					Comment:               "terraform managed",
+					ColumnInfos: []SqlColumnInfo{
+						{
+							Name:     "one",
+							Type:     "string",
+							Comment:  "managed comment",
+							Nullable: true,
+						},
+						{
+							Name:     "two",
+							Type:     "string",
+							Comment:  "managed comment",
+							Nullable: true,
+						},
+						{
+							Name:     "three",
 							Type:     "string",
 							Comment:  "managed comment",
 							Nullable: true,
