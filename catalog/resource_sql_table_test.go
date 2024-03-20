@@ -908,7 +908,9 @@ func TestResourceSqlTableUpdateTable_AddColumn(t *testing.T) {
 
 func TestResourceSqlTableUpdateTable_AddMultipleColumns(t *testing.T) {
 	allowedCommands := []string{
+		// Ordering might not be preserved.
 		"ALTER TABLE `main`.`foo`.`bar` ADD COLUMN (`two` string NOT NULL COMMENT 'managed comment', `three` string NOT NULL COMMENT 'managed comment')",
+		"ALTER TABLE `main`.`foo`.`bar` ADD COLUMN (`three` string NOT NULL COMMENT 'managed comment', `two` string NOT NULL COMMENT 'managed comment')",
 	}
 	d, err := qa.ResourceFixture{
 		CommandMock: func(commandStr string) common.CommandResults {
@@ -1098,7 +1100,9 @@ func TestResourceSqlTableUpdateTable_DropColumn(t *testing.T) {
 
 func TestResourceSqlTableUpdateTable_DropMultipleColumns(t *testing.T) {
 	allowedCommands := []string{
+		// Ordering might not be preserved.
 		"ALTER TABLE `main`.`foo`.`bar` DROP COLUMN IF EXISTS (`two`, `three`)",
+		"ALTER TABLE `main`.`foo`.`bar` DROP COLUMN IF EXISTS (`three`, `two`)",
 	}
 	d, err := qa.ResourceFixture{
 		CommandMock: func(commandStr string) common.CommandResults {
