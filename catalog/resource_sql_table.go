@@ -310,19 +310,31 @@ func (ti *SqlTableInfo) getStatementsForColumnDiffs(oldti *SqlTableInfo, stateme
 			nameToNewColumn[newCi.Name] = newCi
 		}
 
+		removeColumnStatements := make([]string, 0)
+
 		for name, oldCi := range nameToOldColumn {
 			if _, exists := nameToNewColumn[name]; !exists {
 				// Remove old column if old column is no longer found in the config.
-				statements = append(statements, fmt.Sprintf("ALTER %s %s DROP COLUMN IF EXISTS %s", typestring, ti.SQLFullName(), getWrappedColumnName(oldCi)))
+				removeColumnStatements = append(removeColumnStatements, getWrappedColumnName(oldCi))
 			}
 		}
+		if len(removeColumnStatements) > 0 {
+			removeColumnStatementsStr := strings.Join(removeColumnStatements, ", ")
+			statements = append(statements, fmt.Sprintf("ALTER %s %s DROP COLUMN IF EXISTS (%s)", typestring, ti.SQLFullName(), removeColumnStatementsStr))
+		}
+
+		addColumnStatements := make([]string, 0)
 
 		for name, newCi := range nameToNewColumn {
 			if _, exists := nameToOldColumn[name]; !exists {
 				// Add new column if new column is detected.
 				newCiStatement := ti.serializeColumnInfo(newCi)
-				statements = append(statements, fmt.Sprintf("ALTER %s %s ADD COLUMN %s ", typestring, ti.SQLFullName(), newCiStatement))
+				addColumnStatements = append(addColumnStatements, newCiStatement)
 			}
+		}
+		if len(addColumnStatements) > 0 {
+			addColumnStatementsStr := strings.Join(addColumnStatements, ", ")
+			statements = append(statements, fmt.Sprintf("ALTER %s %s ADD COLUMN (%s)", typestring, ti.SQLFullName(), addColumnStatementsStr))
 		}
 	} else {
 		for i, ci := range ti.ColumnInfos {
