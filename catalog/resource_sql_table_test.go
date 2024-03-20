@@ -79,7 +79,7 @@ func TestResourceSqlTableCreateStatement_ViewWithComments(t *testing.T) {
 	}
 	stmt := ti.buildTableCreateStatement()
 	assert.Contains(t, stmt, "CREATE VIEW `main`.`foo`.`bar`")
-	assert.Contains(t, stmt, "(id  NOT NULL, name  NOT NULL COMMENT 'a comment')")
+	assert.Contains(t, stmt, "(`id`  NOT NULL, `name`  NOT NULL COMMENT 'a comment')")
 	assert.NotContains(t, stmt, "USING DELTA")
 	assert.NotContains(t, stmt, "LOCATION 's3://ext-main/foo/bar1' WITH CREDENTIAL somecred")
 	assert.Contains(t, stmt, "COMMENT 'terraform managed'")
@@ -726,6 +726,280 @@ func TestResourceSqlTableUpdateTable_ColumnsTypeThrowsError(t *testing.T) {
 	assert.EqualError(t, err, "changing the 'type' of an existing column is not supported")
 }
 
+func TestResourceSqlTableUpdateTable_ColumnsAdditionAndUpdateThrowsError(t *testing.T) {
+	_, err := qa.ResourceFixture{
+		HCL: `
+		name               = "bar"
+		catalog_name       = "main"
+		schema_name        = "foo"
+		table_type         = "EXTERNAL"
+		data_source_format = "DELTA"
+		storage_location   = "s3://ext-main/foo/bar1"
+		comment 		   = "terraform managed"
+		cluster_id         = "gone"
+		column {
+			name      = "one"
+			type      = "int"
+			comment   = "new comment"
+			nullable  = false
+		}
+		column {
+			name      = "two"
+			type      = "int"
+			comment   = "managed comment"
+			nullable  = false
+		}
+		`,
+		InstanceState: map[string]string{
+			"name":               "bar",
+			"catalog_name":       "main",
+			"schema_name":        "foo",
+			"table_type":         "EXTERNAL",
+			"data_source_format": "DELTA",
+			"storage_location":   "s3://ext-main/foo/bar1",
+			"comment":            "terraform managed",
+			"column.#":           "1",
+			"column.0.name":      "one",
+			"column.0.type":      "int",
+			"column.0.comment":   "old comment",
+			"column.0.nullable":  "false",
+		},
+		Resource: ResourceSqlTable(),
+		ID:       "main.foo.bar",
+		Update:   true,
+	}.Apply(t)
+
+	assert.EqualError(t, err, "detected changes in both number of columns and existing column field values, please do not change number of columns and update column values at the same time")
+}
+
+func TestResourceSqlTableUpdateTable_ColumnsRemovalAndUpdateThrowsError(t *testing.T) {
+	_, err := qa.ResourceFixture{
+		HCL: `
+		name               = "bar"
+		catalog_name       = "main"
+		schema_name        = "foo"
+		table_type         = "EXTERNAL"
+		data_source_format = "DELTA"
+		storage_location   = "s3://ext-main/foo/bar1"
+		comment 		   = "terraform managed"
+		cluster_id         = "gone"
+		column {
+			name      = "one"
+			type      = "int"
+			comment   = "new comment"
+			nullable  = false
+		}
+		`,
+		InstanceState: map[string]string{
+			"name":               "bar",
+			"catalog_name":       "main",
+			"schema_name":        "foo",
+			"table_type":         "EXTERNAL",
+			"data_source_format": "DELTA",
+			"storage_location":   "s3://ext-main/foo/bar1",
+			"comment":            "terraform managed",
+			"column.#":           "2",
+			"column.0.name":      "one",
+			"column.0.type":      "int",
+			"column.0.comment":   "old comment",
+			"column.0.nullable":  "false",
+			"column.1.name":      "two",
+			"column.1.type":      "int",
+			"column.1.comment":   "old comment",
+			"column.1.nullable":  "false",
+		},
+		Resource: ResourceSqlTable(),
+		ID:       "main.foo.bar",
+		Update:   true,
+	}.Apply(t)
+
+	assert.EqualError(t, err, "detected changes in both number of columns and existing column field values, please do not change number of columns and update column values at the same time")
+}
+
+func TestResourceSqlTableUpdateTable_AddColumn(t *testing.T) {
+	allowedCommands := []string{
+		"ALTER TABLE `main`.`foo`.`bar` ADD COLUMN `two` string NOT NULL COMMENT 'managed comment' ",
+	}
+	d, err := qa.ResourceFixture{
+		CommandMock: func(commandStr string) common.CommandResults {
+			assert.True(t, slices.Contains(allowedCommands, commandStr))
+			return common.CommandResults{
+				ResultType: "",
+				Data:       nil,
+			}
+		},
+		HCL: `
+		name               = "bar"
+		catalog_name       = "main"
+		schema_name        = "foo"
+		table_type         = "EXTERNAL"
+		data_source_format = "DELTA"
+		storage_location   = "s3://ext-main/foo/bar1"
+		comment 		   = "terraform managed"
+		cluster_id         = "gone"
+		column {
+			name      = "one"
+			type      = "string"
+			comment   = "managed comment"
+			nullable  = true
+		}
+		column {
+			name      = "two"
+			type      = "string"
+			comment   = "managed comment"
+			nullable  = false
+		}
+		`,
+		InstanceState: map[string]string{
+			"name":               "bar",
+			"catalog_name":       "main",
+			"schema_name":        "foo",
+			"table_type":         "EXTERNAL",
+			"data_source_format": "DELTA",
+			"storage_location":   "s3://ext-main/foo/bar1",
+			"comment":            "terraform managed",
+			"column.#":           "1",
+			"column.0.name":      "one",
+			"column.0.type":      "string",
+			"column.0.comment":   "managed comment",
+			"column.0.nullable":  "true",
+		},
+		Fixtures: append([]qa.HTTPFixture{
+			{
+				Method:       "GET",
+				Resource:     "/api/2.1/unity-catalog/tables/main.foo.bar",
+				ReuseRequest: true,
+				Response: SqlTableInfo{
+					Name:                  "bar",
+					CatalogName:           "main",
+					SchemaName:            "foo",
+					TableType:             "EXTERNAL",
+					DataSourceFormat:      "DELTA",
+					StorageLocation:       "s3://ext-main/foo/bar1",
+					StorageCredentialName: "somecred",
+					Comment:               "terraform managed",
+					ColumnInfos: []SqlColumnInfo{
+						{
+							Name:     "one",
+							Type:     "string",
+							Comment:  "managed comment",
+							Nullable: true,
+						},
+					},
+				},
+			},
+			{
+				Method:   "POST",
+				Resource: "/api/2.0/clusters/start",
+				ExpectedRequest: clusters.ClusterID{
+					ClusterID: "gone",
+				},
+				Status: 404,
+			},
+		}, createClusterForSql...),
+		Resource: ResourceSqlTable(),
+		ID:       "main.foo.bar",
+		Update:   true,
+	}.Apply(t)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "bar", d.Get("name"))
+}
+
+func TestResourceSqlTableUpdateTable_DropColumn(t *testing.T) {
+	allowedCommands := []string{
+		"ALTER TABLE `main`.`foo`.`bar` DROP COLUMN IF EXISTS `two`",
+	}
+	d, err := qa.ResourceFixture{
+		CommandMock: func(commandStr string) common.CommandResults {
+			assert.True(t, slices.Contains(allowedCommands, commandStr))
+			return common.CommandResults{
+				ResultType: "",
+				Data:       nil,
+			}
+		},
+		HCL: `
+		name               = "bar"
+		catalog_name       = "main"
+		schema_name        = "foo"
+		table_type         = "EXTERNAL"
+		data_source_format = "DELTA"
+		storage_location   = "s3://ext-main/foo/bar1"
+		comment 		   = "terraform managed"
+		cluster_id         = "gone"
+		column {
+			name      = "one"
+			type      = "string"
+			comment   = "managed comment"
+			nullable  = true
+		}
+		`,
+		InstanceState: map[string]string{
+			"name":               "bar",
+			"catalog_name":       "main",
+			"schema_name":        "foo",
+			"table_type":         "EXTERNAL",
+			"data_source_format": "DELTA",
+			"storage_location":   "s3://ext-main/foo/bar1",
+			"comment":            "terraform managed",
+			"column.#":           "2",
+			"column.0.name":      "one",
+			"column.0.type":      "string",
+			"column.0.comment":   "managed comment",
+			"column.0.nullable":  "true",
+			"column.1.name":      "two",
+			"column.1.type":      "string",
+			"column.1.comment":   "managed comment",
+			"column.1.nullable":  "true",
+		},
+		Fixtures: append([]qa.HTTPFixture{
+			{
+				Method:       "GET",
+				Resource:     "/api/2.1/unity-catalog/tables/main.foo.bar",
+				ReuseRequest: true,
+				Response: SqlTableInfo{
+					Name:                  "bar",
+					CatalogName:           "main",
+					SchemaName:            "foo",
+					TableType:             "EXTERNAL",
+					DataSourceFormat:      "DELTA",
+					StorageLocation:       "s3://ext-main/foo/bar1",
+					StorageCredentialName: "somecred",
+					Comment:               "terraform managed",
+					ColumnInfos: []SqlColumnInfo{
+						{
+							Name:     "one",
+							Type:     "string",
+							Comment:  "managed comment",
+							Nullable: true,
+						},
+						{
+							Name:     "two",
+							Type:     "string",
+							Comment:  "managed comment",
+							Nullable: true,
+						},
+					},
+				},
+			},
+			{
+				Method:   "POST",
+				Resource: "/api/2.0/clusters/start",
+				ExpectedRequest: clusters.ClusterID{
+					ClusterID: "gone",
+				},
+				Status: 404,
+			},
+		}, createClusterForSql...),
+		Resource: ResourceSqlTable(),
+		ID:       "main.foo.bar",
+		Update:   true,
+	}.Apply(t)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "bar", d.Get("name"))
+}
+
 func TestResourceSqlTableCreateTable_ExistingSQLWarehouse(t *testing.T) {
 	_, err := qa.ResourceFixture{
 		CommandMock: func(commandStr string) common.CommandResults {
@@ -759,7 +1033,7 @@ func TestResourceSqlTableCreateTable_ExistingSQLWarehouse(t *testing.T) {
 				Method:   "POST",
 				Resource: "/api/2.0/sql/statements/",
 				ExpectedRequest: sql.ExecuteStatementRequest{
-					Statement:     "CREATE TABLE `main`.`foo`.`bar` (id int, name string COMMENT 'name of thing')\nUSING DELTA\nCOMMENT 'this table is managed by terraform'\nLOCATION 'abfss://container@account/somepath';",
+					Statement:     "CREATE TABLE `main`.`foo`.`bar` (`id` int, `name` string COMMENT 'name of thing')\nUSING DELTA\nCOMMENT 'this table is managed by terraform'\nLOCATION 'abfss://container@account/somepath';",
 					WaitTimeout:   "50s",
 					WarehouseId:   "existingwarehouse",
 					OnWaitTimeout: sql.ExecuteStatementRequestOnWaitTimeoutCancel,

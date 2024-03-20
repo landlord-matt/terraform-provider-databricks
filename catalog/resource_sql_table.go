@@ -32,7 +32,7 @@ type SqlTableInfo struct {
 	SchemaName            string            `json:"schema_name" tf:"force_new"`
 	TableType             string            `json:"table_type" tf:"force_new"`
 	DataSourceFormat      string            `json:"data_source_format,omitempty" tf:"force_new"`
-	ColumnInfos           []SqlColumnInfo   `json:"columns,omitempty" tf:"alias:column,computed,force_new"`
+	ColumnInfos           []SqlColumnInfo   `json:"columns,omitempty" tf:"alias:column,computed"`
 	Partitions            []string          `json:"partitions,omitempty" tf:"force_new"`
 	ClusterKeys           []string          `json:"cluster_keys,omitempty" tf:"force_new"`
 	StorageLocation       string            `json:"storage_location,omitempty" tf:"suppress_diff"`
@@ -189,7 +189,7 @@ func (ti *SqlTableInfo) serializeColumnInfo(col SqlColumnInfo) string {
 	if col.Comment != "" {
 		comment = fmt.Sprintf(" COMMENT '%s'", parseComment(col.Comment))
 	}
-	return fmt.Sprintf("%s %s%s%s", col.Name, col.Type, notNull, comment) // id INT NOT NULL COMMENT 'something'
+	return fmt.Sprintf("%s %s%s%s", getWrappedColumnName(col), col.Type, notNull, comment) // id INT NOT NULL COMMENT 'something'
 }
 
 func (ti *SqlTableInfo) serializeColumnInfos() string {
@@ -294,29 +294,54 @@ func (ti *SqlTableInfo) buildTableCreateStatement() string {
 	return strings.Join(statements, "")
 }
 
-// Wrapping the column name with backtiks to avoid special character messing things up.
+// Wrapping the column name with backticks to avoid special character messing things up.
 func getWrappedColumnName(ci SqlColumnInfo) string {
 	return fmt.Sprintf("`%s`", ci.Name)
 }
 
 func (ti *SqlTableInfo) getStatementsForColumnDiffs(oldti *SqlTableInfo, statements []string, typestring string) []string {
-	// TODO: take out "force_new" in `column` and add case to handle addition and removal of columns.
-	for i, ci := range ti.ColumnInfos {
-		oldCi := oldti.ColumnInfos[i]
-		if ci.Name != oldCi.Name {
-			statements = append(statements, fmt.Sprintf("ALTER %s %s RENAME COLUMN %s to %s", typestring, ti.SQLFullName(), getWrappedColumnName(oldCi), getWrappedColumnName(ci)))
+	if len(ti.ColumnInfos) != len(oldti.ColumnInfos) {
+		nameToOldColumn := make(map[string]SqlColumnInfo)
+		nameToNewColumn := make(map[string]SqlColumnInfo)
+		for _, ci := range oldti.ColumnInfos {
+			nameToOldColumn[ci.Name] = ci
 		}
-		if ci.Comment != oldCi.Comment {
-			statements = append(statements, fmt.Sprintf("ALTER %s %s ALTER COLUMN %s COMMENT '%s'", typestring, ti.SQLFullName(), getWrappedColumnName(ci), parseComment(ci.Comment)))
+		for _, newCi := range ti.ColumnInfos {
+			nameToNewColumn[newCi.Name] = newCi
 		}
-		if ci.Nullable != oldCi.Nullable {
-			var keyWord string
-			if ci.Nullable {
-				keyWord = "DROP"
-			} else {
-				keyWord = "SET"
+
+		for name, oldCi := range nameToOldColumn {
+			if _, exists := nameToNewColumn[name]; !exists {
+				// Remove old column if old column is no longer found in the config.
+				statements = append(statements, fmt.Sprintf("ALTER %s %s DROP COLUMN IF EXISTS %s", typestring, ti.SQLFullName(), getWrappedColumnName(oldCi)))
 			}
-			statements = append(statements, fmt.Sprintf("ALTER %s %s ALTER COLUMN %s %s NOT NULL", typestring, ti.SQLFullName(), getWrappedColumnName(ci), keyWord))
+		}
+
+		for name, newCi := range nameToNewColumn {
+			if _, exists := nameToOldColumn[name]; !exists {
+				// Add new column if new column is detected.
+				newCiStatement := ti.serializeColumnInfo(newCi)
+				statements = append(statements, fmt.Sprintf("ALTER %s %s ADD COLUMN %s ", typestring, ti.SQLFullName(), newCiStatement))
+			}
+		}
+	} else {
+		for i, ci := range ti.ColumnInfos {
+			oldCi := oldti.ColumnInfos[i]
+			if ci.Name != oldCi.Name {
+				statements = append(statements, fmt.Sprintf("ALTER %s %s RENAME COLUMN %s to %s", typestring, ti.SQLFullName(), getWrappedColumnName(oldCi), getWrappedColumnName(ci)))
+			}
+			if ci.Comment != oldCi.Comment {
+				statements = append(statements, fmt.Sprintf("ALTER %s %s ALTER COLUMN %s COMMENT %s", typestring, ti.SQLFullName(), getWrappedColumnName(ci), parseComment(ci.Comment)))
+			}
+			if ci.Nullable != oldCi.Nullable {
+				var keyWord string
+				if ci.Nullable {
+					keyWord = "SET"
+				} else {
+					keyWord = "DROP"
+				}
+				statements = append(statements, fmt.Sprintf("ALTER %s %s ALTER COLUMN %s %s NULLABLE", typestring, ti.SQLFullName(), getWrappedColumnName(ci), keyWord))
+			}
 		}
 	}
 	return statements
@@ -421,7 +446,6 @@ func columnChangesCustomizeDiff(d *schema.ResourceDiff) error {
 		oldCols := old.([]interface{})
 		newCols := new.([]interface{})
 
-		// Only handling same number of columns for now, will address different number of columns as a follow-up.
 		if len(oldCols) == len(newCols) {
 			for i, oldCol := range oldCols {
 				oldColMap := oldCol.(map[string]interface{})
@@ -429,6 +453,24 @@ func columnChangesCustomizeDiff(d *schema.ResourceDiff) error {
 
 				if oldColMap["type"] != newColMap["type"] {
 					return fmt.Errorf("changing the 'type' of an existing column is not supported")
+				}
+			}
+		} else {
+			oldColsNameToMap := make(map[string]map[string]interface{})
+			newColsNameToMap := make(map[string]map[string]interface{})
+			for _, oldCol := range oldCols {
+				oldColMap := oldCol.(map[string]interface{})
+				oldColsNameToMap[oldColMap["name"].(string)] = oldColMap
+			}
+			for _, newCol := range newCols {
+				newColMap := newCol.(map[string]interface{})
+				newColsNameToMap[newColMap["name"].(string)] = newColMap
+			}
+			for name, oldColMap := range oldColsNameToMap {
+				if newColMap, exists := newColsNameToMap[name]; exists {
+					if oldColMap["type"] != newColMap["type"] || oldColMap["nullable"] != newColMap["nullable"] || oldColMap["comment"] != newColMap["comment"] {
+						return fmt.Errorf("detected changes in both number of columns and existing column field values, please do not change number of columns and update column values at the same time")
+					}
 				}
 			}
 		}
