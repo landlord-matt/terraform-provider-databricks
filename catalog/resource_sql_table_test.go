@@ -818,7 +818,7 @@ func TestResourceSqlTableUpdateTable_ColumnsRemovalAndUpdateThrowsError(t *testi
 
 func TestResourceSqlTableUpdateTable_AddColumn(t *testing.T) {
 	allowedCommands := []string{
-		"ALTER TABLE `main`.`foo`.`bar` ADD COLUMN `two` string NOT NULL COMMENT 'managed comment' ",
+		"ALTER TABLE `main`.`foo`.`bar` ADD COLUMN (`two` string NOT NULL COMMENT 'managed comment')",
 	}
 	d, err := qa.ResourceFixture{
 		CommandMock: func(commandStr string) common.CommandResults {
@@ -908,7 +908,7 @@ func TestResourceSqlTableUpdateTable_AddColumn(t *testing.T) {
 
 func TestResourceSqlTableUpdateTable_DropColumn(t *testing.T) {
 	allowedCommands := []string{
-		"ALTER TABLE `main`.`foo`.`bar` DROP COLUMN IF EXISTS `two`",
+		"ALTER TABLE `main`.`foo`.`bar` DROP COLUMN IF EXISTS (`two`)",
 	}
 	d, err := qa.ResourceFixture{
 		CommandMock: func(commandStr string) common.CommandResults {
